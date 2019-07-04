@@ -20,16 +20,18 @@ MesonSpaceWavef::usage="MesonSpaceWavef[QNpar_,ML_,p_]:\:4ecb\:5b50\:7a7a\:95f4\
 MesonWavef::usage="MesonWavef[QNpar_,MJ_,ML_,MS_,p__]:\:4ecb\:5b50\:6ce2\:51fd\:6570";
 FitMGECoeff::usage="FitMGECoeff[data_,QNpar_,Flag_:'Normal']:\:62df\:5408\:6570\:503c\:6570\:636e\:7ed9\:51fa\:591a\:9ad8\:65af\:5c55\:5f00\:7cfb\:6570\:ff0cdata={{r1,f1},...},Flag\:53ef\:4ee5\:9009\:62e9Debug\:ff0cShow\:ff0c\:9ed8\:8ba4\:4e3aNormal";
 GetMGECoeff::usage="GetMGECoeff[path,QNpar]:\:83b7\:53d6\:591a\:9ad8\:65af\:5c55\:5f00\:7cfb\:6570";
-MGEr::usage="MGEr[QNpar_,r_]:\:591a\:9ad8\:65af\:5c55\:5f00\:5750\:6807\:7a7a\:95f4\:57fa\:51fd\:6570";
-MGEp::usage="MGEr[QNpar_,p_]:\:591a\:9ad8\:65af\:5c55\:5f00\:52a8\:91cf\:7a7a\:95f4\:57fa\:51fd\:6570";
+MGEr::usage="MGEr[QNpar_,r_]:\:591a\:9ad8\:65af\:5c55\:5f00\:5750\:6807\:7a7a\:95f4\:57fa\:51fd\:6570,QNpar\:5305\:542bL,a0,q,Nmax\:56db\:4e2a\:53c2\:6570\:7684\:503c";
+MGEp::usage="MGEp[QNpar_,p_]:\:591a\:9ad8\:65af\:5c55\:5f00\:52a8\:91cf\:7a7a\:95f4\:57fa\:51fd\:6570,,QNpar\:5305\:542bL,a0,q,Nmax\:56db\:4e2a\:53c2\:6570\:7684\:503c";
 HarmonicSpacep::usage="HarmonicSpacep[QNpar_,p_]:\:8c10\:632f\:5b50\:52a8\:91cf\:7a7a\:95f4\:7a7a\:95f4\:6ce2\:51fd\:6570";
 HarmonicSpacer::usage="HarmonicSpacer[QNpar_,r_]:\:8c10\:632f\:5b50\:5750\:6807\:7a7a\:95f4\:7a7a\:95f4\:6ce2\:51fd\:6570";
 QNCop::usage="QNCop[m_,p__]:3p0\:7b97\:7b26";
 $fmtoGeV::usage="\:5982\:679c\:6570\:503c\:6ce2\:51fd\:6570\:7684r\:4ee5fm\:4e3a\:5355\:4f4d\:ff0c\:5219\:8bbe\:7f6e\:4e3aTrue";
+$TransposeData::usage="\:662f\:5426\:9700\:8981\:5bf9\:8bfb\:5165\:7684\:6570\:636e\:8fdb\:884c\:8f6c\:7f6e\:ff0c\:9ed8\:8ba4\:662fTrue";
 
 
 Begin["`Private`"]
 $fmtoGeV=True;
+$TransposeData=True;
 HadronWaveF::flavor="can't find this particle in flavor list";
 
 
@@ -78,7 +80,7 @@ MGEr[QNpar_,r_]:=Block[{L,a0,q,Nmax,vn,Nnl},{L,a0,q,Nmax}={QNpar["L"],QNpar["a0"
 vn=Table[1/(a0*(q)^((i-1)/(Nmax-1)))^2,{i,1,Nmax}];
 Nnl=Table[((2^(L+2)*(2*vn[[i]])^(L+3/2))/(Sqrt[\[Pi]](2*L+1)!!))^(1/2),{i,1,Nmax}];
 If[Length[r]>1,Table[Nnl[[i]]*Sqrt[r[[1]]^2+r[[2]]^2+r[[3]]^2]^L*E^(-vn[[i]]),{i,1,Nmax}],
-Table[Nnl[[i]]*E^(-vn[[i]]*r^2),{i,1,Nmax}]]];
+Table[Nnl[[i]]*r^L*E^(-vn[[i]]*r^2),{i,1,Nmax}]]];
 
 FitMGECoeff[data_,QNpar_,Flag_:"Normal"]:=Block[{vn,Eij,Nnl,\[Phi]r,wavef,norm,FOverlapGBF,coeffGBF,SumGaussian,L,a0,q,Nmax,h},
 h=data[[2,1]]-data[[1,1]];
@@ -88,19 +90,22 @@ Eij=Table[N[((2Sqrt[vn[[i]]vn[[j]]])/(vn[[i]]+vn[[j]]))^(L+3/2)],{i,1,Nmax},{j,1
 Nnl=Table[((2^(L+2)*(2*vn[[i]])^(L+3/2))/(Sqrt[\[Pi]](2*L+1)!!))^(1/2),{i,1,Nmax}];
 \[Phi]r=Table[Nnl[[i]]*r^L*E^(-vn[[i]]*r^2),{i,1,Nmax}];
 wavef=Interpolation[data,Method->"Spline"];
-If[Flag=="Debug",Print["h is ",h,"\n vn is :",vn,"\n Eij is ",Eij]];
 norm=(NIntegrate[wavef[r]^2,{r,h,Length[data]*h}])^(-1/2);
 FOverlapGBF=Table[NIntegrate[\[Phi]r[[i]]*r*wavef[r]*norm,{r,h,Length[data]*h}],{i,1,Nmax}];
 coeffGBF=N[Inverse[Eij].FOverlapGBF];
 SumGaussian=Sum[r*\[Phi]r[[i]]*coeffGBF[[i]],{i,1,Nmax}];
-If[Flag=="Show",Plot[{SumGaussian,norm*wavef[r]},{r,h,Length[data]*h},PlotLegends->"Expressions"],coeffGBF]];
+If[Flag=="Debug",Print["h is ",h,"\n vn is :",vn,"\n Eij is ",Eij,"\n norm is ",norm,"\n data is ",data[[1;;20,2]],"\n Length data is ",Length[data]]];
+If[Flag=="Show",Plot[{SumGaussian,norm*wavef[r]},{r,h,Length[data]*h},PlotLegends->{"fit_func","normal waver"}],coeffGBF]];
 
 GetMGECoeff[path_,QNpar_]:=Block[{data,filename,wave,coeff,name},
 wave=Switch[QNpar["L"],0,"S",1,"P",2,"D",3,"F"];
-name=If[LetterQ[Characters[QNpar["Name"]][[2]]],ToUpperCase[StringJoin@@Characters[QNpar["Name"]][[1;;2]]],ToUpperCase[StringJoin@@Characters[QNpar["Name"]][[1]]]];
+name=Switch[Characters[QNpar["Name"]][[1]],
+"B"|"b"|"D"|"d",If[LetterQ[Characters[QNpar["Name"]][[2]]],ToUpperCase[StringJoin@@Characters[QNpar["Name"]][[1;;2]]],ToUpperCase[StringJoin@@Characters[QNpar["Name"]][[1]]]],
+"\[Phi]"|"\[Omega]","SS",
+_,Print["Can't find this name in name list; ",Characters[QNpar["Name"]][[1]]];];
 filename=path<>TemplateApply[name<>"`a``b``c``d`.dat",<|"a"->QNpar["N"]+1,"b"->2*QNpar["S"]+1,"c"->wave,"d"->QNpar["J"] |>];
 If[FileExistsQ[filename],Continue,Print["file not exist :",filename];Return[0]];
-If[FileExistsQ[filename<>"_ciL"],coeff=Import[filename<>"_ciL"],data=Import[filename];
+If[FileExistsQ[filename<>"_ciL"],coeff=Import[filename<>"_ciL"],data=Import[filename];If[$TransposeData,data=Transpose[data]];
 coeff=FitMGECoeff[data,QNpar];Export[filename<>"_ciL",coeff,"Table"]];coeff];
 
 MesonSpaceWavef[QNpar_,ML_,p_]:=Block[{n,J,L,S,type,\[Beta]},{n,J,L,S,type}={QNpar["N"],QNpar["J"],QNpar["L"],QNpar["S"],QNpar["type"]};<|"symbol"->TemplateApply["Psi(`L`,`ML`)",<|"L"->L,"ML"->ML|>],
@@ -124,16 +129,16 @@ MesonFlavorWavef[Name_]:=<|"symbol"->TemplateApply["\[Phi](`a`)",<|"a"->Name|>],
 "\[Pi]0"|"\[Rho]0",{{1/Sqrt[2],"ux"},{-1/Sqrt[2],"dy"}},
 "\[Eta]1",{{1/Sqrt[3],"ux"},{1/Sqrt[3],"dy"},{1/Sqrt[3],"sz"}},
 "\[Eta]8",{{1/Sqrt[6],"ux"},{1/Sqrt[6],"dy"},{-2/Sqrt[6],"sz"}},
-"\[Omega]"|"\[Eta]q",{{1/Sqrt[2],"ux"},{1/Sqrt[2],"dy"}},
-"\[Phi]"|"\[Eta]s",{{1,"sz"}},
+"\[Omega]"|"\[Eta]q"|"fq",{{1/Sqrt[2],"ux"},{1/Sqrt[2],"dy"}},
+"\[Phi]"|"\[Eta]s"|"fs",{{1,"sz"}},
 "D0",{{1,"cx"}},
 "D0bar",{{1,"uv"}},
 "D+",{{1,"cy"}},
 "D-",{{1,"dv"}},
 "Ds+",{{1,"cz"}},
 "Ds-",{{1,"sv"}},
-"\[CapitalPsi]",{{1,"cv"}},
-"\[CapitalUpsilon]",{{1,"bw"}},
+"\[CapitalPsi]"|"cc"|"ccbar"|"\[Psi]"|"\[Eta]c",{{1,"cv"}},
+"\[CapitalUpsilon]"|"bb"|"bbbar",{{1,"bw"}},
 "B+",{{1,"uw"}},
 "B-",{{1,"bx"}},
 "B0",{{1,"dw"}},
@@ -142,9 +147,9 @@ MesonFlavorWavef[Name_]:=<|"symbol"->TemplateApply["\[Phi](`a`)",<|"a"->Name|>],
 "Bs0bar",{{1,"bz"}},
 "Bc+",{{1,"cw"}},
 "Bc-",{{1,"bv"}},
-"uubar",{{1,"ux"}},
-"ddbar",{{1,"dy"}},
-"ssbar",{{1,"sz"}},
+"uubar"|"uu",{{1,"ux"}},
+"ddbar"|"dd",{{1,"dy"}},
+"ssbar"|"ss",{{1,"sz"}},
 "3p0",{{1/Sqrt[3],"ux"},{1/Sqrt[3],"dy"},{1/Sqrt[3],"sz"}},
 _,Message[HadronWaveF::flavor]]|>;
 LBFlavorWavef[S3_,Name_]:=<|"symbol"->TemplateApply["\[Phi](`a``b`)",<|"a"->S3,"b"->Name|>],"value"-> Switch[{S3,StringSplit[Name,{"(","_","^"}][[1]]},
